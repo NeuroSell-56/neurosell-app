@@ -2,8 +2,8 @@
 import streamlit as st
 import openai
 
-# Set your OpenAI API key here (replace with your actual key securely)
-openai.api_key = "sk-your-key-here"
+# Use OpenAI API key securely from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # ----------------------------
 # App Layout Configuration
@@ -27,37 +27,35 @@ industry = st.selectbox("Step 1: Select Industry", industries)
 # Step 2: AI-Generated General Pressure Types
 # ----------------------------
 if industry:
-    if "openai_response_1" not in st.session_state:
+    if "general_pressures" not in st.session_state:
         with st.spinner("Generating General Pressure Types..."):
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst."},
                     {"role": "user", "content": f"List the 6 most current General Pressure Types facing the {industry} industry."}
                 ]
             )
-            st.session_state.openai_response_1 = response['choices'][0]['message']['content'].split("\n")
+            st.session_state.general_pressures = response.choices[0].message.content.split("\n")
 
-    general_pressures = st.session_state.openai_response_1
-    general_pressure = st.selectbox("Step 2: Select General Pressure Type", general_pressures)
+    general_pressure = st.selectbox("Step 2: Select General Pressure Type", st.session_state.general_pressures)
 
 # ----------------------------
 # Step 3: AI-Generated Specific Pressure Types
 # ----------------------------
 if industry and general_pressure:
-    if "openai_response_2" not in st.session_state:
+    if "specific_pressures" not in st.session_state:
         with st.spinner("Generating Specific Pressure Types..."):
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are an expert industry strategist."},
                     {"role": "user", "content": f"List 4 current Specific Pressure Types under the General Pressure '{general_pressure}' in the {industry} industry."}
                 ]
             )
-            st.session_state.openai_response_2 = response['choices'][0]['message']['content'].split("\n")
+            st.session_state.specific_pressures = response.choices[0].message.content.split("\n")
 
-    specific_pressures = st.session_state.openai_response_2
-    specific_pressure = st.selectbox("Step 3: Select Specific Pressure Type", specific_pressures)
+    specific_pressure = st.selectbox("Step 3: Select Specific Pressure Type", st.session_state.specific_pressures)
 
 # ----------------------------
 # Step 4: Generate Pressure Grid
@@ -65,14 +63,14 @@ if industry and general_pressure:
 if industry and general_pressure and specific_pressure:
     if st.button("Step 4: Generate Pressure Grid"):
         with st.spinner("Creating AI-generated Pressure Grid..."):
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a sales enablement strategist building a pressure grid."},
                     {"role": "user", "content": f"Build a 4-row Pressure Grid for the {industry} industry under '{general_pressure}' > '{specific_pressure}'. Each row must include: Industry Driver, KPI(s), Observed Effects, Considered Solutions, Narrative Opportunity, Emotional State. Format it clearly."}
                 ]
             )
-            st.session_state.pressure_grid = response['choices'][0]['message']['content']
+            st.session_state.pressure_grid = response.choices[0].message.content
 
 # ----------------------------
 # Display Pressure Grid
