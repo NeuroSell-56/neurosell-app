@@ -30,7 +30,7 @@ if industry:
     if "general_pressures" not in st.session_state:
         with st.spinner("Generating General Pressure Types..."):
             response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are an expert business analyst."},
                     {"role": "user", "content": f"List the 6 most current General Pressure Types facing the {industry} industry."}
