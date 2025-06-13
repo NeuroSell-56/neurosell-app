@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # -----------------------------
 # Set your OpenAI API key securely
@@ -75,10 +76,10 @@ if industry:
         gpt_prompt = f"""
         List 6 concise General Pressure Types (1-2 words each, comma separated) facing the {industry} industry.
         """
-        gpt_response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": gpt_prompt}]
-        )
+       gpt_response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": gpt_prompt}]
+)
         gpt_text = gpt_response.choices[0].message.content.strip()
         gpt_options = [opt.strip() for opt in gpt_text.split(",")][:6]
 
