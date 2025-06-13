@@ -76,10 +76,11 @@ if industry:
         gpt_prompt = f"""
         List 6 concise General Pressure Types (1–2 words each, comma separated) facing the {industry} industry.
         """
-        gpt_response = client.chat.completions.create(
+                gpt_response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": gpt_prompt}]
         )
+
         gpt_text = gpt_response.choices[0].message.content.strip()
         gpt_options = [opt.strip() for opt in gpt_text.split(",")][:6]
 
