@@ -1,21 +1,25 @@
 import streamlit as st
+import openai
 from openai import OpenAI
+from openai import AzureOpenAI
+from openai import AsyncOpenAI
+from openai import AsyncAzureOpenAI
 
 # Set your OpenAI API key securely
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# --------------------------
+# ----------------------------
 # Page Configuration
-# --------------------------
+# ----------------------------
 st.set_page_config(
     page_title="NeuroSell Industry Decoder™",
     layout="wide",
     initial_sidebar_state="auto"
 )
 
-# --------------------------
+# ----------------------------
 # Styling: Branded Colors & Logo
-# --------------------------
+# ----------------------------
 st.markdown(
     """
     <style>
@@ -38,69 +42,113 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --------------------------
+# ----------------------------
+# NeuroSell Logo
+# ----------------------------
+st.image("https://raw.githubusercontent.com/NeuroSell-56/assets/main/NeuroSell_AI_Official_Logo.png", width=250)
+
+# ----------------------------
+# Header
+# ----------------------------
+st.title("NeuroSell Industry Decoder™ – Industry Preferences + Pressure Grid")
+st.write("Use the dropdowns below to decode industry pressures and generate strategic narratives.")
+
+# ----------------------------
 # Step 1: Select Industry
-# --------------------------
-st.markdown("<div class='step-label'>Step 1: Select Industry</div>", unsafe_allow_html=True)
+# ----------------------------
+st.subheader("Step 1: Select Industry")
 industries = [
     "Agriculture", "Education – K-12 & Higher Ed", "Financial Services",
-    "Government – Federal", "Government – Local", "Government – State",
-    "Grocery", "Healthcare", "Hospitality", "Manufacturing",
-    "Midstream Oil & Gas", "Downstream Oil & Gas", "Retail",
-    "Technology", "Transportation", "Utilities", "Other"
+    "Government – Federal", "Government – Local", "Government – State", "Grocery",
+    "Healthcare", "Manufacturing", "Oil & Gas – Downstream", "Oil & Gas – Midstream",
+    "Oil & Gas – Upstream", "Retail", "Technology", "Utilities", "Other (manual input)"
 ]
-industry = st.selectbox("", industries)
+industry = st.selectbox("Select your Industry", [""] + industries)
 
-# --------------------------
-# Step 2: AI-generated General Pressure Type (GPT)
-# --------------------------
-st.markdown("<div class='step-label'>Step 2: Select General Pressure Type</div>", unsafe_allow_html=True)
+# Initialize placeholders
 gpt_options = []
-if industry:
-    with st.spinner("Analyzing industry..."):
-        gpt_prompt = f"""
-        List 6 concise General Pressure Types (1–2 words each, comma separated) facing the {industry} industry.
-        """
-        gpt_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": gpt_prompt}]
-        )
-        gpt_text = gpt_response.choices[0].message.content.strip()
-        gpt_options = [opt.strip() for opt in gpt_text.split(",")][:6]
-
-gpt_selected = st.selectbox("", gpt_options) if gpt_options else None
-
-# --------------------------
-# Step 3: AI-generated Specific Pressure Type (SPT)
-# --------------------------
-st.markdown("<div class='step-label'>Step 3: Select Specific Pressure Type</div>", unsafe_allow_html=True)
 spt_options = []
-if gpt_selected:
-    with st.spinner("Generating specific pressures..."):
-        spt_prompt = f"""
-        Based on the {industry} industry and the General Pressure Type '{gpt_selected}', return 4 concise Specific Pressure Types (2–3 words each, comma separated).
-        """
-        spt_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": spt_prompt}]
-        )
-        spt_text = spt_response.choices[0].message.content.strip()
-        spt_options = [opt.strip() for opt in spt_text.split(",")][:4]
+pressure_grid = []
 
-spt_selected = st.selectbox("", spt_options) if spt_options else None
+# ----------------------------
+# Step 2: GPT Dropdown
+# ----------------------------
+st.subheader("Step 2: Select General Pressure Type")
+gpt = ""
+if industry:
+    gpt_prompt = f"""
+    Based on the {industry} industry, list 6 General Pressure Types (GPTs) that typically impact this sector.
+    Return them as a Python list of short 1-2 word categories only, no explanations.
+    Example: ["Regulatory", "Financial", "Geopolitical", "Technological", "Labor", "Environmental"]
+    """
+    client = OpenAI()
+    gpt_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": gpt_prompt}],
+        temperature=0.7,
+    )
+    try:
+        gpt_options = eval(gpt_response.choices[0].message.content.strip())
+    except Exception:
+        gpt_options = []
 
-# --------------------------
-# Step 4: AI-generated Strategic Narrative
-# --------------------------
-st.markdown("<div class='step-label'>Step 4: View Strategic Narrative</div>", unsafe_allow_html=True)
-if spt_selected:
-    with st.spinner("Crafting narrative..."):
-        final_prompt = f"""
-        Based on the {industry} industry, the General Pressure Type '{gpt_selected}', and the Specific Pressure Type '{spt_selected}', write a short strategic narrative (3-4 sentences) a sales professional could use to show deep understanding of the client's business challenge.
-        """
-        final_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": final_prompt}]
-        )
-        final_text = final_response.choices[0].message.content.strip()
-        st.markdown(f"<div class='narrative'>{final_text}</div>", unsafe_allow_html=True)
+gpt = st.selectbox("Select a General Pressure Type", [""] + gpt_options) if gpt_options else ""
+
+# ----------------------------
+# Step 3: SPT Dropdown
+# ----------------------------
+st.subheader("Step 3: Select Specific Pressure Type")
+spt = ""
+if industry and gpt:
+    spt_prompt = f"""
+    Based on the {industry} industry and the selected general pressure type '{gpt}',
+    list 4 Specific Pressure Types (SPTs) that fall under this category.
+    Return them as a Python list of short 1-3 word phrases only, no explanations.
+    """
+    spt_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": spt_prompt}],
+        temperature=0.7,
+    )
+    try:
+        spt_options = eval(spt_response.choices[0].message.content.strip())
+    except Exception:
+        spt_options = []
+
+spt = st.selectbox("Select a Specific Pressure Type", [""] + spt_options) if spt_options else ""
+
+# ----------------------------
+# Step 4: Generate Pressure Grid
+# ----------------------------
+st.subheader("Step 4: Generate Pressure Grid")
+grid_data = []
+if st.button("Generate Pressure Grid") and industry and gpt and spt:
+    grid_prompt = f"""
+    Using the {industry} industry, General Pressure Type '{gpt}', and Specific Pressure Type '{spt}',
+    generate a Pressure Grid with 4 rows. Each row should contain the following columns:
+    1. Industry Driver
+    2. Related KPI
+    3. Observed Effects
+    4. Industry Solution
+    5. Narrative Opportunity
+    6. Emotional State (with short explanation)
+
+    Return the result as a list of 4 dictionaries in this format:
+    [
+        {{"Industry Driver": "...", "KPI": "...", "Observed Effects": "...", "Industry Solution": "...", "Narrative Opportunity": "...", "Emotional State": "..."}},
+        ... 3 more like above ...
+    ]
+    """
+    grid_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": grid_prompt}],
+        temperature=0.7,
+    )
+    try:
+        grid_data = eval(grid_response.choices[0].message.content.strip())
+    except Exception:
+        st.error("Failed to generate Pressure Grid. Please try again.")
+
+    if grid_data:
+        st.write("### Pressure Grid")
+        st.dataframe(grid_data)
